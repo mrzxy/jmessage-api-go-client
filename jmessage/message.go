@@ -119,3 +119,4 @@ type JPMessageList struct {
 	Count    int64       `json:"count"`
 	Messages []JPMessage `json:"messages,omitempty"`
 }
+

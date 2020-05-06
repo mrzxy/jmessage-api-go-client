@@ -1,6 +1,8 @@
 package jmessage
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"time"
@@ -98,5 +100,21 @@ func (jclient *JMessageClient) SentSystemTxtMsg(fromId string,
 		fmt.Println("respone:", string(ibytes))
 	}
 
+	return nil
+}
+
+
+func (jclient *JMessageClient) handleJmErr(body *goreq.Body) error {
+	ibytes, err := ioutil.ReadAll(body)
+	if nil != err {
+		return err
+	}
+	if jclient.showDebug {
+		fmt.Println("respone:", string(ibytes))
+	}
+	jmErr := JMResponse{}
+	if err := json.Unmarshal(ibytes, &jmErr); err == nil {
+		return errors.New(jmErr.Error.Message)
+	}
 	return nil
 }
