@@ -212,6 +212,7 @@ func (jclient *JMessageClient) UpdateGroup(opt UpdateGroupOpt) error {
 	return nil
 }
 
+// 上传媒体文件
 func (jclient *JMessageClient) UploadMedia(imgUrl string) (*JPIMGMsg, error) {
 	resp, err2 := http.Get(imgUrl)
 	if err2 != nil {
