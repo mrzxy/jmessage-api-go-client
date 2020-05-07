@@ -259,7 +259,6 @@ type MuteUserByGroupOpt struct {
 }
 func (jclient *JMessageClient) MuteUserByGroup(opt MuteUserByGroupOpt) error {
 	url := fmt.Sprintf("%s/v1/groups/messages/%d/silence?status=%v", JMESSAGE_IM_URL, opt.GroupID, opt.Status)
-	fmt.Println(url)
 	res, err := jclient.request(url, "PUT", opt.Members)
 
 	if err != nil {
