@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"time"
 
@@ -113,8 +114,26 @@ func (jclient *JMessageClient) handleJmErr(body *goreq.Body) error {
 		fmt.Println("respone:", string(ibytes))
 	}
 	jmErr := JMResponse{}
-	if err := json.Unmarshal(ibytes, &jmErr); err == nil {
+	if err := json.Unmarshal(ibytes, &jmErr); err == nil && jmErr.Error != nil {
 		return errors.New(jmErr.Error.Message)
 	}
 	return nil
+}
+
+
+func (jclient *JMessageClient) handleGetJmErr(body io.Reader, data interface{}) error {
+	ibytes, err := ioutil.ReadAll(body)
+	if nil != err {
+		return err
+	}
+	if jclient.showDebug {
+		fmt.Println("respone:", string(ibytes))
+	}
+	jmErr := JMResponse{}
+	if err := json.Unmarshal(ibytes, &jmErr); err == nil && jmErr.Error != nil{
+		return errors.New(jmErr.Error.Message)
+	}
+
+	err = json.Unmarshal(ibytes, data)
+	return err
 }

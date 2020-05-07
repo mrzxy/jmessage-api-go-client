@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/franela/goreq"
@@ -93,11 +94,19 @@ func (jclient *JMessageClient) RegisterUser(username string,
 	password string,
 	avatar string) (*JMUser, *JMError, error) {
 
+	var avatarMediaID string
+	if avatar != "" && strings.Index(avatar, "http") == 0 {
+		media, err := jclient.UploadMedia(avatar)
+		if err == nil {
+			avatarMediaID = media.MediaId
+		}
+	}
+
 	user := JMUser{
 		Username: username,
 		Password: password,
 		Nickname: nickName,
-		Avatar:   avatar,
+		Avatar:   avatarMediaID,
 	}
 	users, err := jclient.RegisterUsers([]*JMUser{&user})
 	if nil != err {
@@ -245,7 +254,9 @@ func (jclient *JMessageClient) UpdateProfile(username string, nickname, avatar, 
 		params["nickname"] = nickname
 	}
 	if avatar != "" {
-		params["avatar"] = avatar
+		if media, err := jclient.UploadMedia(avatar); err == nil {
+			params["avatar"] = media.MediaId
+		}
 	}
 	if birthday != "" {
 		params["birthday"] = birthday

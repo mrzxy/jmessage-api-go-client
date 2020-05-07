@@ -1,12 +1,16 @@
 package jmessage
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/franela/goreq"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -158,4 +162,90 @@ func (jclient *JMessageClient) GetGroupMember(groupID int) ([]GetGroupMemberRst,
 
 	err = json.Unmarshal(ibytes, &rst)
 	return rst, err
+}
+
+// 获取群组详情
+type GetGroupInfoRst struct {
+	GID int `json:"gid"`
+	Name string `json:"name"`
+	Desc string `json:"desc"`
+	AppKey string `json:"appKey"`
+	MaxMemberCount int `json:"max_member_count"`
+	Mtime string
+	Ctime string
+}
+
+func (jclient *JMessageClient) GetGroupInfo(groupID int) (*GetGroupInfoRst, error) {
+	url := fmt.Sprintf("%s%s%d", JMESSAGE_IM_URL, GROUPS_URL, groupID)
+	res, err := jclient.request(url, "GET", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	rst := &GetGroupInfoRst{}
+	if err := jclient.handleGetJmErr(res.Body, rst); err == nil {
+		return rst, nil
+	} else {
+		return nil, err
+	}
+}
+
+// 移交群主
+type UpdateGroupOpt struct {
+	GroupID int
+	Name string
+}
+func (jclient *JMessageClient) UpdateGroup(opt UpdateGroupOpt) error {
+	url := fmt.Sprintf("%s%s%d", JMESSAGE_IM_URL, GROUPS_URL, opt.GroupID)
+	res, err := jclient.request(url, "PUT", map[string]string{"name": opt.Name})
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusNoContent {
+		if err := jclient.handleJmErr(res.Body); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (jclient *JMessageClient) UploadMedia(imgUrl string) (*JPIMGMsg, error) {
+	resp, err2 := http.Get(imgUrl)
+	if err2 != nil {
+		return nil, err2
+	}
+	defer resp.Body.Close()
+
+	url := fmt.Sprintf("%s/v1/resource?type=image", JMESSAGE_IM_URL)
+	bodyBuf := &bytes.Buffer{}
+	bodyWriter := multipart.NewWriter(bodyBuf)
+
+	filename := imgUrl[strings.LastIndex(imgUrl, "/"):] + ".png"
+	fileWriter, _ := bodyWriter.CreateFormFile("filename", filename)
+	contentType := bodyWriter.FormDataContentType()
+	if _, err := io.Copy(fileWriter, resp.Body); err != nil {
+		return nil, err
+	}
+	bodyWriter.Close()
+
+	client := &http.Client{}
+	req, _ := http.NewRequest("POST", url, bodyBuf)
+	req.SetBasicAuth(jclient.appKey, jclient.masterSecret)
+	req.Header.Set("Content-Type", contentType)
+	res, err := client.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	rst := &JPIMGMsg{}
+	if err := jclient.handleGetJmErr(res.Body, rst); err == nil {
+		return rst, nil
+	} else {
+		return nil, err
+	}
 }
