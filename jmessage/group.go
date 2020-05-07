@@ -250,3 +250,27 @@ func (jclient *JMessageClient) UploadMedia(imgUrl string) (*JPIMGMsg, error) {
 		return nil, err
 	}
 }
+
+// 移交群主
+type MuteUserByGroupOpt struct {
+	GroupID int
+	Status bool
+	Members []string
+}
+func (jclient *JMessageClient) MuteUserByGroup(opt MuteUserByGroupOpt) error {
+	url := fmt.Sprintf("%s/v1/groups/messages/%d/silence?status=%v", JMESSAGE_IM_URL, opt.GroupID, opt.Status)
+	fmt.Println(url)
+	res, err := jclient.request(url, "PUT", opt.Members)
+
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusNoContent {
+		if err := jclient.handleJmErr(res.Body); err != nil {
+			return err
+		}
+	}
+	return nil
+}
